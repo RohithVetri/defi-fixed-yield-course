@@ -37,8 +37,3 @@ const config: HardhatUserConfig = {
 };
 
 export default config;
-
-// Register tasks
-import "./tasks/deposit";
-import "./tasks/withdraw";
-import "./tasks/claim";
