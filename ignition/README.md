@@ -18,7 +18,6 @@ ignition/
 │   ├── FixedYieldVaults.ts    # 主部署模块
 │   ├── RewardToken.ts         # 奖励代币模块
 │   ├── MockERC20.ts           # Mock ERC20 模块
-│   ├── FixedRateETHVault.ts   # ETH 金库模块
 │   └── FixedRateERC4626Vault.ts # ERC4626 金库模块
 ├── deploy.ts                   # 自定义部署脚本
 └── README.md                   # 本文档

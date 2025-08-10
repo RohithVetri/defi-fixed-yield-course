@@ -9,38 +9,6 @@ async function increase(days: number) {
 }
 
 describe("Fixed Yield Vaults", () => {
-  it("ETH vault linear rewards", async () => {
-    const [alice] = await ethers.getSigners();
-
-    // 合约部署
-    const Reward = await ethers.getContractFactory("RewardToken");
-    const reward = await Reward.deploy("RewardToken", "RWD");
-    await reward.waitForDeployment();
-
-    const Vault = await ethers.getContractFactory("FixedRateETHVault");
-    const vault = await Vault.deploy(await reward.getAddress(), 1000); // 10% APR
-    await vault.waitForDeployment();
-    await (await reward.setMinter(await vault.getAddress(), true)).wait();
-
-    // 存入 ETH
-    await (await vault.connect(alice).deposit({ value: ethers.parseEther("10") })).wait();
-    // 快进 30 天
-    await increase(30);
-    // 获取奖励
-    const pending = await vault.getPendingReward(alice.address);
-    // ~10 ETH * 10% * 30/365 ≈ 0.082 ETH worth of rewards (1:1 units)
-    expect(Number(ethers.formatEther(pending))).to.be.greaterThan(0.07);
-
-    // 领取奖励
-    await (await vault.connect(alice).claim()).wait();
-
-    // 检查奖励是否正确
-    const bal = await reward.balanceOf(alice.address);
-    const diff = bal > pending ? bal - pending : pending - bal;
-    const tolerance = 10n ** 12n; // 1e12 wei tolerance for timing drift
-    expect(diff <= tolerance).to.be.true;
-  });
-
   it("ERC4626 vault accrues on assets and claims", async () => {
     const [user] = await ethers.getSigners();
 

@@ -1,4 +1,4 @@
-你现在扮演一名资深全栈 Web3 教学工程师与解决方案架构师。请为我生成一个完整可运行的 GitHub 仓库，作为“固定年化金库 + 奖励代币”的课程项目（ERC4626 标准实现 + ETH 教学版）。要求如下：
+你现在扮演一名资深全栈 Web3 教学工程师与解决方案架构师。请为我生成一个完整可运行的 GitHub 仓库，作为"固定年化金库 + 奖励代币"的课程项目（ERC4626 标准实现）。要求如下：
 
 ---
 
@@ -20,7 +20,6 @@
 ```
 contracts/
   RewardToken.sol          # ERC20奖励代币
-  FixedRateETHVault.sol    # 教学版ETH金库
   FixedRateERC4626Vault.sol# ERC4626固定利率金库(ERC20资产)
 scripts/
   deploy.ts
@@ -50,12 +49,6 @@ frontend/...
 **奖励代币 RewardToken**
 - 标准 ERC20，Owner 可设置 Minter
 - Vault 能调用 mint 给用户发奖励
-
-**ETH 教学版金库 FixedRateETHVault**
-- 固定年化利率（bps）
-- 存 ETH，线性计息（发奖励代币）
-- CEI 顺序、安全转账（call）、ReentrancyGuard
-- 简化教学逻辑
 
 **ERC4626 标准固定利率金库 FixedRateERC4626Vault**
 - 基于 ERC4626（OpenZeppelin `ERC4626`, `ERC20`, `ReentrancyGuard`, `Ownable`）

@@ -1,8 +1,8 @@
-# 固定年化金库 + 奖励代币（ERC4626 + ETH 教学版）
+# 固定年化金库 + 奖励代币（ERC4626 教学版）
 
-面向 Solidity/Web3 初级开发者教学，包含：合约实现、Hardhat 部署与测试、Next.js 14 前端、命令行任务、课程文档与可视化、CI。
+面向 Solidity/Web3 初级开发者教学，包含：ERC4626 合约实现、Hardhat 部署与测试、Next.js 14 前端、命令行任务、课程文档与可视化、CI。
 
-- [固定年化金库 + 奖励代币（ERC4626 + ETH 教学版）](#固定年化金库--奖励代币erc4626--eth-教学版)
+- [固定年化金库 + 奖励代币（ERC4626 教学版）](#固定年化金库--奖励代币erc4626-教学版)
   - [课程大纲](#课程大纲)
   - [技术栈](#技术栈)
   - [仓库结构](#仓库结构)
@@ -38,7 +38,6 @@
 - 利率与计息：bps 基点、线性计息、年化到实时换算
 - 合约实现（见 `docs/lessons/03-vault-contract.md`）：
   - `RewardToken` 奖励代币（Minter 权限）
-  - `FixedRateETHVault` ETH 教学金库（安全转账、线性计息、Claim）
   - `FixedRateERC4626Vault` 标准化金库（`deposit/mint/withdraw/redeem` 钩子记息与奖励）
 - 工程与测试（见 `docs/lessons/04-hardhat-deploy.md`）：Hardhat 配置、部署脚本、Tasks 命令、时间快进单测
 - 前端集成（见 `docs/lessons/05-frontend.md`）：Next.js 14 + wagmi/viem + RainbowKit 的交互面板
@@ -65,11 +64,10 @@
 ```text
 contracts/
   RewardToken.sol                # ERC20 奖励代币（可配置 Minter）
-  FixedRateETHVault.sol         # 教学版 ETH 金库
   FixedRateERC4626Vault.sol     # 基于 ERC4626 的固定利率金库
   MockERC20.sol                 # 测试用 ERC20
 scripts/
-  deploy.ts                     # 部署奖励代币、ETH Vault、ERC4626 Vault
+  deploy.ts                     # 部署奖励代币、ERC4626 Vault
   interact.ts                   # 演示 4626 deposit → claim → withdraw
 tasks/
   deposit.ts  withdraw.ts  claim.ts
@@ -323,17 +321,12 @@ npx hardhat run scripts/interact.ts --network hardhat
 
 5) 命令行任务（Tasks）
 ```bash
-# 向 ETH 教学 Vault 存入 1 ETH
-npx hardhat deposit:eth --vault 0xETH_VAULT --amount 1 --network hardhat
-
 # 向 ERC4626 Vault 存入 100 单位（默认 18 decimals）
-npx hardhat deposit:erc4626 --vault 0xVAULT --underlying 0xUNDERLYING --amount 100 --network hardhat
+npx hardhat deposit --vault 0xVAULT --underlying 0xUNDERLYING --amount 100 --network hardhat
 
 # 提取/领取
-npx hardhat withdraw:eth --vault 0xETH_VAULT --amount 0.5 --network hardhat
-npx hardhat withdraw:erc4626 --vault 0xVAULT --amount 10 --network hardhat
-npx hardhat claim:eth --vault 0xETH_VAULT --network hardhat
-npx hardhat claim:erc4626 --vault 0xVAULT --network hardhat
+npx hardhat withdraw --vault 0xVAULT --amount 10 --network hardhat
+npx hardhat claim --vault 0xVAULT --network hardhat
 ```
 
 ---
@@ -344,7 +337,7 @@ npx hardhat claim:erc4626 --vault 0xVAULT --network hardhat
 ```bash
 # 必需的合约地址（部署后填入真实地址）
 NEXT_PUBLIC_VAULT_ADDRESS=0xERC4626_VAULT_ADDRESS_HERE
-NEXT_PUBLIC_ETH_VAULT_ADDRESS=0xETH_VAULT_ADDRESS_HERE
+
 NEXT_PUBLIC_REWARD_TOKEN_ADDRESS=0xREWARD_TOKEN_ADDRESS_HERE
 NEXT_PUBLIC_UNDERLYING_ADDRESS=0xUNDERLYING_TOKEN_ADDRESS_HERE
 
@@ -359,23 +352,6 @@ npm install  # 现已包含 @tanstack/react-query 依赖
 npm run dev
 # http://localhost:3000
 ```
-
-**注意**：前端代码已优化，包含：
-- ✅ 修复了缺失的 `@tanstack/react-query` 依赖
-- ✅ 改进了错误处理和用户体验
-- ✅ 支持自定义存取金额（不再硬编码）
-- ✅ 添加了加载状态和错误提示
-- ✅ 合约地址可点击跳转到 Sepolia Etherscan
-- ✅ 显示已领取的 Reward Token 余额
-- ✅ 实时显示钱包中的代币余额
-页面 `Vault 面板` 支持：
-- ERC4626 固定利率金库操作界面
-- 显示合约信息（Vault、Underlying Token、Reward Token）
-- 实时余额展示：年化利率、持有份额、对应资产、待领奖励
-- 钱包余额：Underlying Token 和已领取 Reward Token
-- 三大核心操作：Deposit（存款）/ Withdraw（提款）/ Claim（领取奖励）
-- 交易状态实时跟踪和用户友好的加载提示
-
 ---
 
 ## 核心流程图

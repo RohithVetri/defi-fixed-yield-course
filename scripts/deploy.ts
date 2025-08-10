@@ -32,12 +32,6 @@ async function main() {
     console.log(`MockERC20: ${underlyingAddress}`);
   }
 
-  // ETH Vault
-  const FixedRateETHVault = await ethers.getContractFactory("FixedRateETHVault");
-  const ethVault = await FixedRateETHVault.deploy(await rewardToken.getAddress(), annualRateBps);
-  await ethVault.waitForDeployment();
-  console.log(`FixedRateETHVault: ${await ethVault.getAddress()}`);
-
   // ERC4626 Vault
   const FixedRateERC4626Vault = await ethers.getContractFactory("FixedRateERC4626Vault");
   const vault4626 = await FixedRateERC4626Vault.deploy(underlyingAddress, await rewardToken.getAddress(), annualRateBps);
@@ -45,7 +39,6 @@ async function main() {
   console.log(`FixedRateERC4626Vault: ${await vault4626.getAddress()}`);
 
   // Set minters
-  await (await rewardToken.setMinter(await ethVault.getAddress(), true)).wait();
   await (await rewardToken.setMinter(await vault4626.getAddress(), true)).wait();
   console.log("Set minters done");
 
@@ -53,7 +46,6 @@ async function main() {
   console.log(JSON.stringify({
     network: network.name,
     rewardToken: await rewardToken.getAddress(),
-    ethVault: await ethVault.getAddress(),
     erc4626Vault: await vault4626.getAddress(),
     underlying: underlyingAddress,
   }, null, 2));
