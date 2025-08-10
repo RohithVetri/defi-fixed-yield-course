@@ -387,7 +387,8 @@ sequenceDiagram
 ---
 
 ## 课程文档
-- `docs/lessons/01-intro.md`：项目简介与总览
+- `docs/lessons/01-intro.md`：项目简介与总览（含 DApp vs 传统 App 初步对比）
+- `01.5-dapp-vs-traditional.md`：DApp vs 传统应用深度对比（技术栈、架构、安全、成本等）
 - `02-solidity-basics.md`：Solidity 与标准回顾
 - `03-vault-contract.md`：金库实现要点与时序
 - `04-hardhat-deploy.md`：部署与脚本
