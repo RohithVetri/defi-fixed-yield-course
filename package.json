@@ -1,0 +1,32 @@
+{
+  "name": "defi-fixed-yield-course",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy": "hardhat run scripts/deploy.ts --network sepolia",
+    "deploy:ignition": "hardhat ignition deploy ignition/modules/FixedYieldVaults.ts --network localhost",
+    "deploy:ignition:sepolia": "hardhat ignition deploy ignition/modules/FixedYieldVaults.ts --network sepolia",
+    "deploy:ignition:verify": "hardhat ignition deploy ignition/modules/FixedYieldVaults.ts --network sepolia --verify",
+    "deploy:script": "hardhat run ignition/deploy.ts",
+    "deploy:script:sepolia": "hardhat run ignition/deploy.ts --network sepolia",
+    "verify": "hardhat ignition verify FixedYieldVaultsModule --network sepolia",
+    "status": "hardhat ignition status FixedYieldVaultsModule --network sepolia"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.14",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.6",
+    "dotenv": "^16.4.5",
+    "hardhat": "^2.22.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.2",
+    "ethers": "^6.10.0"
+  }
+}

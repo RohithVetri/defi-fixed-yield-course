@@ -1,0 +1,13 @@
+{
+  "FixedYieldVaultsModule": {
+    "rewardName": "Custom Reward Token",
+    "rewardSymbol": "CRT",
+    "annualRateBps": 750,
+    "mockTokenName": "Test USDC",
+    "mockTokenSymbol": "tUSDC",
+    "mockTokenDecimals": 18,
+    "mintAmount": "10000000000000000000000000",
+    "useExistingUnderlying": false,
+    "existingUnderlyingAddress": ""
+  }
+}

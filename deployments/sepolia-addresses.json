@@ -1,0 +1,10 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "rewardToken": "0xd5C23FaA7CF2a92AA29eE49603AADf620B1d91e8",
+  "erc4626Vault": "0x8a71b2abb1A3B0a41a2fBeA561A9057320402667",
+  "underlying": "0x35A4fdAbfC3279e19d5BAEc4DdD5e460901840f0",
+  "deploymentTimestamp": "2024-12-10T12:00:00Z",
+  "verified": false,
+  "note": "Deployment successful but verification failed due to Etherscan API issues"
+}
