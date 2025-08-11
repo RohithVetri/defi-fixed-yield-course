@@ -31,162 +31,161 @@ graph TD
 const config = getDefaultConfig({
   appName: "Fixed Yield DeFi",
   chains: [sepolia],
+  transports: {
+    [sepolia.id]: http(), // 使用默认公共RPC
+  },
   ssr: false, // 禁用服务端渲染
 });
 ```
 
-## 合约交互核心
+### RPC 节点配置
 
-### useVault Hook
+**⚠️ 重要概念**：DApp 和用户钱包使用不同的 RPC 节点
+- **合约读取**：走 DApp 配置的 RPC（如下面的 `http()`）
+- **交易签名/广播**：走钱包的 RPC（用户在 MetaMask 中配置的节点）
 
-**数据读取** - 监听合约状态：
+**生产环境建议配置专用 RPC**：
 ```typescript
-const { data: shares } = useReadContract({
-  address: VAULT_ADDRESS,
-  abi: VAULT_ABI,
-  functionName: "balanceOf", 
-  args: [userAddress],
-});
+transports: {
+  [sepolia.id]: http('https://sepolia.infura.io/v3/YOUR_PROJECT_ID'),
+}
 ```
 
-**交易执行** - 写入合约：
-```typescript
-const { writeContract } = useWriteContract();
+## 核心组件实现
 
-const deposit = async (amount: string) => {
-  // 1. 先授权 ERC20
-  await writeContract({
-    address: UNDERLYING_ADDRESS,
-    abi: ERC20_ABI,
-    functionName: "approve",
-    args: [VAULT_ADDRESS, parseEther(amount)],
-  });
-  
-  // 2. 调用存款
-  await writeContract({
+### useVault Hook - 合约交互封装
+
+```typescript
+export function useVault() {
+  const { address } = useAccount();
+  const { writeContract } = useWriteContract();
+
+  // 实时读取合约数据
+  const { data: shares } = useReadContract({
     address: VAULT_ADDRESS,
     abi: VAULT_ABI,
-    functionName: "deposit",
-    args: [parseEther(amount), userAddress],
+    functionName: "balanceOf", 
+    args: address ? [address] : undefined,
+    watch: true, // 实时监听链上变化
   });
-};
+
+  const { data: pendingReward } = useReadContract({
+    address: VAULT_ADDRESS,
+    abi: VAULT_ABI,
+    functionName: "getPendingReward",
+    args: address ? [address] : undefined,
+    watch: true,
+  });
+
+  // 存款操作（两步流程）
+  const deposit = async (amount: string) => {
+    // 1. ERC20 授权
+    await writeContract({
+      address: UNDERLYING_ADDRESS,
+      abi: ERC20_ABI,
+      functionName: "approve",
+      args: [VAULT_ADDRESS, parseEther(amount)],
+    });
+    
+    // 2. 金库存款
+    await writeContract({
+      address: VAULT_ADDRESS,
+      abi: VAULT_ABI,
+      functionName: "deposit",
+      args: [parseEther(amount), address],
+    });
+  };
+
+  return { shares, pendingReward, deposit, /* ... */ };
+}
 ```
 
-## 主要界面组件
+### 界面组件
 
-### 钱包连接
+**钱包连接**：
 ```typescript
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-
-// 一键连接多种钱包
-<ConnectButton />
+<ConnectButton /> // 一键连接多种钱包
 ```
 
-### 数据展示
+**业务操作界面**：
 ```typescript
-// 实时读取合约数据
-const { data: shares } = useReadContract({
-  functionName: "balanceOf",
-  args: [userAddress],
-});
-
-const { data: pendingReward } = useReadContract({
-  functionName: "getPendingReward", 
-  args: [userAddress],
-});
+function VaultInterface() {
+  const { shares, pendingReward, deposit } = useVault();
+  
+  return (
+    <div>
+      <p>我的份额: {shares}</p>
+      <p>待领取奖励: {pendingReward}</p>
+      <button onClick={() => deposit("100")}>存款 100</button>
+    </div>
+  );
+}
 ```
 
-## 前端→钱包→合约交互流程
+## 完整业务流程
 
-### 1. 钱包连接流程
-
-```mermaid
-sequenceDiagram
-    participant User as 👤 用户
-    participant Frontend as 🖥️ 前端
-    participant RainbowKit as 🌈 RainbowKit
-    participant Wallet as 👛 钱包 (MetaMask)
-    participant Network as 🌐 以太坊网络
-
-    User->>Frontend: 访问 DApp
-    Frontend->>RainbowKit: 显示连接按钮
-    User->>RainbowKit: 点击连接钱包
-    RainbowKit->>Wallet: 请求连接
-    Wallet->>User: 弹出授权窗口
-    User->>Wallet: 确认连接
-    Wallet->>RainbowKit: 返回账户地址
-    RainbowKit->>Frontend: 更新连接状态
-    Frontend->>Network: 开始监听合约数据
-```
-
-### 2. 存款交易流程
+### 存款交易详细流程
 
 ```mermaid
 sequenceDiagram
     participant User as 👤 用户  
-    participant Frontend as 🖥️ 前端
-    participant Wallet as 👛 钱包
+    participant Frontend as 🖥️ DApp前端
+    participant DAppRPC as 📡 DApp RPC
+    participant Wallet as 👛 钱包(MetaMask)
+    participant WalletRPC as 🔗 钱包RPC
     participant Contract as 📋 智能合约
 
-    User->>Frontend: 输入存款金额
-    User->>Frontend: 点击存款按钮
+    Note over Frontend,DAppRPC: 读取阶段
+    Frontend->>DAppRPC: 查询用户余额
+    DAppRPC->>Contract: useReadContract()
+    Contract->>Frontend: 显示当前数据
+
+    Note over User,Contract: 交易阶段
+    User->>Frontend: 输入金额，点击存款
     
-    Note over Frontend: 第1步：ERC20授权
-    Frontend->>Wallet: approve(vault, amount)
-    Wallet->>User: 弹出交易确认
-    User->>Wallet: 确认授权交易
-    Wallet->>Contract: 发送授权交易
-    Contract->>Frontend: 授权成功
+    Frontend->>Wallet: 请求 ERC20 授权
+    Wallet->>WalletRPC: 获取交易参数
+    Wallet->>User: 弹出确认窗口
+    User->>Wallet: 确认授权
+    Wallet->>WalletRPC: 广播授权交易
+    WalletRPC->>Contract: 执行 approve()
     
-    Note over Frontend: 第2步：金库存款
-    Frontend->>Wallet: deposit(amount, user)
-    Wallet->>User: 弹出交易确认  
-    User->>Wallet: 确认存款交易
-    Wallet->>Contract: 发送存款交易
-    Contract->>Contract: _accrue() 计息
-    Contract->>Contract: mint shares
-    Contract->>Frontend: 存款成功
-    Frontend->>Frontend: 刷新余额显示
+    Frontend->>Wallet: 请求金库存款
+    Wallet->>User: 再次确认
+    User->>Wallet: 确认存款
+    Wallet->>WalletRPC: 广播存款交易
+    WalletRPC->>Contract: 执行 deposit()
+    Contract->>Contract: _accrue() 计息 + mint shares
+    
+    Contract->>Frontend: 交易完成
+    Frontend->>Frontend: 自动刷新余额
 ```
 
-### 3. 奖励领取流程
+### 关键设计要点
 
-```mermaid
-sequenceDiagram
-    participant User as 👤 用户
-    participant Frontend as 🖥️ 前端  
-    participant Wallet as 👛 钱包
-    participant Contract as 📋 智能合约
-    participant RewardToken as 🪙 奖励代币
+**1. RPC 分工明确**：
+- **DApp RPC**：负责读取合约数据（`useReadContract`）
+- **钱包 RPC**：负责交易签名和广播（`writeContract`）
 
-    Frontend->>Contract: getPendingReward(user)
-    Contract->>Frontend: 返回待领取奖励
-    Frontend->>User: 显示奖励金额
-    
-    User->>Frontend: 点击领取奖励
-    Frontend->>Wallet: claim()
-    Wallet->>User: 弹出交易确认
-    User->>Wallet: 确认领取交易
-    Wallet->>Contract: 发送领取交易
-    Contract->>Contract: _accrue() 最终计息
-    Contract->>RewardToken: mint(user, amount)
-    Contract->>Frontend: 领取成功
-    Frontend->>Frontend: 刷新奖励余额
-```
-
-### 4. 关键交互要点
-
-**双重确认机制**：
-- 每个交易都需要用户在钱包中确认
-- 前端显示交易状态（等待确认/处理中/完成）
-
-**实时数据同步**：
+**2. 用户体验优化**：
 ```typescript
-// wagmi 自动监听链上数据变化
-const { data: balance } = useReadContract({
-  watch: true, // 实时监听
+// 实时监听链上变化，无需手动刷新
+const { data: shares } = useReadContract({
+  watch: true, // 关键配置
   functionName: "balanceOf",
 });
+```
+
+**3. 错误处理**：
+```typescript
+try {
+  await writeContract({ /* ... */ });
+} catch (error) {
+  if (error.code === 4001) {
+    // 用户拒绝交易
+  }
+}
 ```
 
 ## 启动方式
