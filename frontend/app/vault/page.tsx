@@ -24,10 +24,12 @@ export default function VaultPage() {
     isWithdrawing,
     isClaiming,
     isConfirming,
+    isRefreshing,
     approve,
     deposit,
     withdraw,
     claim,
+    refreshData,
   } = useVault();
 
   const isLoading = isApproving || isDepositing || isWithdrawing || isClaiming || isConfirming;
@@ -40,7 +42,31 @@ export default function VaultPage() {
           <h1 className="text-3xl font-bold">ERC4626 固定利率金库</h1>
           <p className="text-slate-400 mt-1">存入代币获得固定年化收益</p>
         </div>
-        <ConnectButton />
+        <div className="flex items-center gap-3">
+          {isConnected && (
+            <button
+              onClick={refreshData}
+              disabled={isRefreshing || isLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-md font-medium transition-colors"
+            >
+              <svg 
+                className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`}
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
+                />
+              </svg>
+              {isRefreshing ? "刷新中..." : "刷新数据"}
+            </button>
+          )}
+          <ConnectButton />
+        </div>
       </div>
 
       {!isConnected ? (
@@ -197,6 +223,14 @@ export default function VaultPage() {
               <p className="text-blue-200">
                 ⏳ 交易处理中，请稍候...
                 {isConfirming && " (等待区块确认)"}
+              </p>
+            </div>
+          )}
+          
+          {isRefreshing && (
+            <div className="bg-purple-900/50 border border-purple-500 p-4 rounded-lg">
+              <p className="text-purple-200">
+                🔄 正在从区块链获取最新数据...
               </p>
             </div>
           )}

@@ -84,43 +84,44 @@ export function useVault() {
   const [isDepositing, setIsDepositing] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [isClaiming, setIsClaiming] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // 读取合约数据
-  const { data: shares } = useReadContract({
+  const { data: shares, refetch: refetchShares } = useReadContract({
     address: VAULT_ADDRESS,
     abi: VAULT_ABI,
     functionName: "balanceOf",
     args: address ? [address] : undefined,
   });
 
-  const { data: assets } = useReadContract({
+  const { data: assets, refetch: refetchAssets } = useReadContract({
     address: VAULT_ADDRESS,
     abi: VAULT_ABI,
     functionName: "convertToAssets",
     args: shares ? [shares] : undefined,
   });
 
-  const { data: pendingReward } = useReadContract({
+  const { data: pendingReward, refetch: refetchPendingReward } = useReadContract({
     address: VAULT_ADDRESS,
     abi: VAULT_ABI,
     functionName: "getPendingReward",
     args: address ? [address] : undefined,
   });
 
-  const { data: annualRateBps } = useReadContract({
+  const { data: annualRateBps, refetch: refetchAnnualRate } = useReadContract({
     address: VAULT_ADDRESS,
     abi: VAULT_ABI,
     functionName: "annualRateBps",
   });
 
-  const { data: underlyingBalance } = useReadContract({
+  const { data: underlyingBalance, refetch: refetchUnderlyingBalance } = useReadContract({
     address: UNDERLYING_ADDRESS,
     abi: ERC20_ABI,
     functionName: "balanceOf",
     args: address ? [address] : undefined,
   });
 
-  const { data: rewardTokenBalance } = useReadContract({
+  const { data: rewardTokenBalance, refetch: refetchRewardTokenBalance } = useReadContract({
     address: REWARD_TOKEN_ADDRESS,
     abi: ERC20_ABI,
     functionName: "balanceOf",
@@ -203,6 +204,25 @@ export function useVault() {
     }
   };
 
+  const refreshData = async () => {
+    setIsRefreshing(true);
+    try {
+      // 刷新所有合约数据
+      await Promise.all([
+        refetchShares(),
+        refetchAssets(),
+        refetchPendingReward(),
+        refetchAnnualRate(),
+        refetchUnderlyingBalance(),
+        refetchRewardTokenBalance(),
+      ]);
+    } catch (error) {
+      console.error("Refresh failed:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return {
     // 地址
     vaultAddress: VAULT_ADDRESS,
@@ -223,11 +243,13 @@ export function useVault() {
     isWithdrawing,
     isClaiming,
     isConfirming,
+    isRefreshing,
     
     // 操作函数
     approve,
     deposit,
     withdraw,
     claim,
+    refreshData,
   };
 }
