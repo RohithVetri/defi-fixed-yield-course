@@ -16,8 +16,12 @@ contract FixedRateERC4626Vault is ERC4626, Ownable, ReentrancyGuard {
     IRewardToken public immutable rewardToken;
     uint256 public annualRateBps; // e.g., 500 = 5%
 
+    // Global accumulator for reward calculation
+    uint256 public globalAccumulatedRewardPerToken; // scaled by 1e18
+    uint256 public lastUpdateTimestamp;
+    
     mapping(address => uint256) public rewardAccruedByUser;
-    mapping(address => uint256) public lastAccrueTimestampByUser;
+    mapping(address => uint256) public userRewardPerTokenPaid; // scaled by 1e18
 
     event Claimed(address indexed user, uint256 amount);
     event AnnualRateUpdated(uint256 newBps);
@@ -36,12 +40,32 @@ contract FixedRateERC4626Vault is ERC4626, Ownable, ReentrancyGuard {
         require(annualRateBps_ <= 10_000, "bps");
         rewardToken = IRewardToken(rewardToken_);
         annualRateBps = annualRateBps_;
+        lastUpdateTimestamp = block.timestamp;
     }
 
     function setAnnualRateBps(uint256 newBps) external onlyOwner {
         require(newBps <= 10_000, "bps");
+        _updateGlobalAccumulator();
         annualRateBps = newBps;
         emit AnnualRateUpdated(newBps);
+    }
+
+    /// @notice Update the global accumulated reward per token
+    function _updateGlobalAccumulator() internal {
+        if (totalSupply() == 0) {
+            lastUpdateTimestamp = block.timestamp;
+            return;
+        }
+        
+        uint256 elapsed = block.timestamp - lastUpdateTimestamp;
+        if (elapsed == 0) return;
+        
+        // Calculate reward per token for this time period
+        // rewardPerToken = (annualRateBps * elapsed) / (10_000 * ONE_YEAR)
+        // Scale by 1e18 for precision
+        uint256 rewardPerToken = (annualRateBps * elapsed * 1e18) / (10_000 * ONE_YEAR);
+        globalAccumulatedRewardPerToken += rewardPerToken;
+        lastUpdateTimestamp = block.timestamp;
     }
 
     // ----- External ERC4626 entry points with accrual guards -----
@@ -93,38 +117,46 @@ contract FixedRateERC4626Vault is ERC4626, Ownable, ReentrancyGuard {
     }
 
     function getPendingReward(address user) external view returns (uint256) {
-        (uint256 baseAccrued, uint256 last) = (
-            rewardAccruedByUser[user],
-            lastAccrueTimestampByUser[user]
-        );
-        if (last == 0) return baseAccrued;
+        uint256 baseAccrued = rewardAccruedByUser[user];
         uint256 assets = convertToAssets(balanceOf(user));
+        
         if (assets == 0) return baseAccrued;
-        uint256 elapsed = block.timestamp - last;
-        if (elapsed == 0) return baseAccrued;
-        // Use intermediate steps to prevent overflow and improve precision
-        uint256 rewardRate = (assets * annualRateBps) / 10_000;
-        uint256 linear = (rewardRate * elapsed) / ONE_YEAR;
-        return baseAccrued + linear;
+        
+        // Calculate current global accumulated reward per token
+        uint256 currentGlobalAccumulated = globalAccumulatedRewardPerToken;
+        if (totalSupply() > 0) {
+            uint256 elapsed = block.timestamp - lastUpdateTimestamp;
+            if (elapsed > 0) {
+                uint256 additionalRewardPerToken = (annualRateBps * elapsed * 1e18) / (10_000 * ONE_YEAR);
+                currentGlobalAccumulated += additionalRewardPerToken;
+            }
+        }
+        
+        // Calculate pending rewards
+        uint256 unpaidRewards = currentGlobalAccumulated - userRewardPerTokenPaid[user];
+        uint256 pendingRewards = (assets * unpaidRewards) / 1e18;
+        
+        return baseAccrued + pendingRewards;
     }
 
     function _accrue(address user) internal {
-        uint256 last = lastAccrueTimestampByUser[user];
-        if (last == 0) {
-            lastAccrueTimestampByUser[user] = block.timestamp;
-            return;
-        }
+        _updateGlobalAccumulator();
+        
         uint256 assets = convertToAssets(balanceOf(user));
         if (assets == 0) {
-            lastAccrueTimestampByUser[user] = block.timestamp;
+            // Update user's baseline even with zero balance
+            userRewardPerTokenPaid[user] = globalAccumulatedRewardPerToken;
             return;
         }
-        uint256 elapsed = block.timestamp - last;
-        if (elapsed == 0) return;
-        // Use intermediate steps to prevent overflow and improve precision
-        uint256 rewardRate = (assets * annualRateBps) / 10_000;
-        uint256 linear = (rewardRate * elapsed) / ONE_YEAR;
-        rewardAccruedByUser[user] += linear;
-        lastAccrueTimestampByUser[user] = block.timestamp;
+        
+        // Calculate unclaimed rewards based on the difference in accumulated reward per token
+        uint256 unpaidRewards = globalAccumulatedRewardPerToken - userRewardPerTokenPaid[user];
+        if (unpaidRewards > 0) {
+            // Convert rewards: (assets * unpaidRewards) / 1e18
+            rewardAccruedByUser[user] += (assets * unpaidRewards) / 1e18;
+        }
+        
+        // Update user's baseline to current global state
+        userRewardPerTokenPaid[user] = globalAccumulatedRewardPerToken;
     }
 }

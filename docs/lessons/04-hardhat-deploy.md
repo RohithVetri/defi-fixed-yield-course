@@ -54,24 +54,12 @@ graph TD
 npx hardhat ignition deploy ignition/modules/FixedYieldVaults.ts --network sepolia
 ```
 
-## 合约验证
+## 合约验证(手动)
 
-### 自动验证（推荐）
-部署时直接验证：
-```bash
-npx hardhat ignition deploy ignition/modules/FixedYieldVaults.ts \
-  --network sepolia \
-  --verify
-```
-
-### 手动验证
-如果部署时未验证，可以后续验证：
 ```bash
 # 验证指定链上的所有合约
 npx hardhat ignition verify chain-11155111 --include-unrelated-contracts
 
-# 或者验证特定模块
-npx hardhat ignition verify FixedYieldVaultsModule --network sepolia
 ```
 
 ## 部署后配置
