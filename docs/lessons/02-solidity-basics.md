@@ -2,9 +2,14 @@
 
 ## 什么是智能合约
 
-智能合约（Smart Contract）是存储在区块链上的数字化程序，由计算机科学家 Nick Szabo 于 1994 年提出。它是一种能够在满足预设条件时自动执行合约条款的代码，无需传统的法律框架或中介机构。
+Smart contracts are the fundamental building blocks of Ethereum's application layer. They are computer programs stored on the blockchain that follow "if this then that" logic, and are guaranteed to execute according to the rules defined by its code, which cannot be changed once created.
 
-智能合约本质上是**程序化的协议**，将传统合约的条款用代码实现，当特定条件被触发时（比如收到付款、到达特定日期），合约会自动执行相应的操作。
+Nick Szabo coined the term "smart contract". In 1994, he wrote an introduction to the conceptopens in a new tab, and in 1996 he wrote an exploration of what smart contracts could doopens in a new tab.
+
+Szabo envisioned a digital marketplace where automatic, cryptographically-secure processes enable transactions and business functions to happen without trusted intermediaries. Smart contracts on Ethereum put this vision into practice.
+
+Watch Finematics explain smart contracts:
+https://www.youtube.com/watch?v=pWGLtjG-F5c&t=3s
 
 ## 智能合约核心特性
 
