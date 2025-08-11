@@ -50,23 +50,6 @@ contract FixedRateERC4626Vault is ERC4626, Ownable, ReentrancyGuard {
         emit AnnualRateUpdated(newBps);
     }
 
-    /// @notice Update the global accumulated reward per token
-    function _updateGlobalAccumulator() internal {
-        if (totalSupply() == 0) {
-            lastUpdateTimestamp = block.timestamp;
-            return;
-        }
-        
-        uint256 elapsed = block.timestamp - lastUpdateTimestamp;
-        if (elapsed == 0) return;
-        
-        // Calculate reward per token for this time period
-        // rewardPerToken = (annualRateBps * elapsed) / (10_000 * ONE_YEAR)
-        // Scale by 1e18 for precision
-        uint256 rewardPerToken = (annualRateBps * elapsed * 1e18) / (10_000 * ONE_YEAR);
-        globalAccumulatedRewardPerToken += rewardPerToken;
-        lastUpdateTimestamp = block.timestamp;
-    }
 
     // ----- External ERC4626 entry points with accrual guards -----
     function deposit(uint256 assets, address receiver)
@@ -137,6 +120,24 @@ contract FixedRateERC4626Vault is ERC4626, Ownable, ReentrancyGuard {
         uint256 pendingRewards = (assets * unpaidRewards) / 1e18;
         
         return baseAccrued + pendingRewards;
+    }
+
+    /// @notice Update the global accumulated reward per token
+    function _updateGlobalAccumulator() internal {
+        if (totalSupply() == 0) {
+            lastUpdateTimestamp = block.timestamp;
+            return;
+        }
+        
+        uint256 elapsed = block.timestamp - lastUpdateTimestamp;
+        if (elapsed == 0) return;
+        
+        // Calculate reward per token for this time period
+        // rewardPerToken = (annualRateBps * elapsed) / (10_000 * ONE_YEAR)
+        // Scale by 1e18 for precision
+        uint256 rewardPerToken = (annualRateBps * elapsed * 1e18) / (10_000 * ONE_YEAR);
+        globalAccumulatedRewardPerToken += rewardPerToken;
+        lastUpdateTimestamp = block.timestamp;
     }
 
     function _accrue(address user) internal {
